@@ -26,7 +26,7 @@ def draw_numbers(numbers, selected_value):
             text = font.render(str(numbers[row][number]), True, (0, 0, 0))
             rect = text.get_rect(center=((number+1)*50, (row+1)*50))
             screen.blit(text, rect)
-            if (number, row) == selected_value:
+            if [number, row] == selected_value:
                 pygame.draw.rect(screen, (255, 0, 0), pygame.Rect((number+1)*50-24, (row+1)*50-24, 49, 49), 2, 2)
             
 def draw_buttons():
@@ -42,7 +42,7 @@ def draw_buttons():
     return rect1, rect2
             
 value, solution = generate_board()
-selected_number = (0, 0)
+selected_number = [0, 0]
 
 while run:
     screen.fill((255, 255, 255))
@@ -50,22 +50,34 @@ while run:
     draw_numbers(value, selected_number)
     reset_button, check_entries_button = draw_buttons()
     for event in pygame.event.get():
-        print(event)
         if event.type == pygame.QUIT:
             run = False
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        elif event.type == pygame.MOUSEBUTTONUP:
             if reset_button.collidepoint(event.pos):
                 value, solution = generate_board()
-                selected_number = (-1, 0)
+                selected_number = [-1, 0]
             elif check_entries_button.collidepoint(event.pos):
-                print(1)
-                selected_number = (-1, 0)
+                screen.fill((255, 255, 255))
+                draw_grid()
+                draw_numbers(solution, [-1, 0])
+                pygame.display.update()
+                pygame.time.wait(3000)
+                draw_numbers(value, selected_number)
             elif 475 >= event.pos[0] >= 25 and 475 >= event.pos[1] >= 25:
-                selected_number = (int((event.pos[0]-25)/50),int((event.pos[1]-25)/50))
+                selected_number = [int((event.pos[0]-25)/50),int((event.pos[1]-25)/50)]
             else:
-                selected_number = (-1, 0)
-
-                                
+                selected_number = [-1, 0]
+        elif event.type == pygame.KEYUP and event.key in [pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]:
+            if event.key == pygame.K_UP and selected_number[1] > 0:
+                selected_number[1] -= 1
+            elif event.key == pygame.K_DOWN and selected_number[1] < 8:
+                selected_number[1] += 1
+            elif event.key == pygame.K_LEFT and selected_number[0] > 0:
+                selected_number[0] -= 1
+            elif event.key == pygame.K_RIGHT and selected_number[0] < 9:
+                selected_number[0] += 1
+        elif event.type == pygame.TEXTINPUT and event.text in [str(i) for i in range(1, 10)]:
+            value[selected_number[1]][selected_number[0]] = int(event.text)
     pygame.display.update() 
 
 pygame.quit()
