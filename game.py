@@ -13,98 +13,133 @@ def wait_on_user_key():
         for event in pygame.event.get():
             if event.type in [pygame.KEYUP, pygame.MOUSEBUTTONUP]:
                 k = True
+            elif event.type == pygame.QUIT:
+                run = False
             break
         if k:
             break
 
-def check_win(value, solution):
+def check_win(value, solution, lives, diff, ticks):
     if value == solution:
         screen.fill((255,255,255))
         draw_grid()
-        draw_numbers(value, [-1,0])
+        draw_numbers(value, [-1,0], lives, diff, ticks)
         for row in range(9):
           for number in range(9):
-                pygame.draw.rect(screen, (0, 255, 0), pygame.Rect((number+1)*50-25, (row+1)*50-25, 50, 50), 3, 0)
+                pygame.draw.rect(screen, (0, 255, 0), pygame.Rect((number+1)*50-25, (row+1)*50, 50, 50), 3, 0)
         pygame.display.update()
         pygame.time.wait(2500)
         screen.fill((255,255,255,))
         font = pygame.font.Font(None, 50)
-        text = font.render("GEWONN", True, (0,0,0))
+        text = font.render("GEWONNEN", True, (0,0,0))
         screen.blit(text, text.get_rect(center=(250,250)))
         pygame.display.update()
         pygame.time.wait(2500)
         return True
 
-def draw_false_numbers(value, solution):
-    if not check_win(value, solution):
+def check_lose(lives):
+    if lives == 0:
+        src_img = pygame.image.load("heart.png")
+        src_img.convert()
+        font = pygame.font.Font(None, 40)
+        for i in range(1, 6):
+            screen.fill((255,255,255))
+            img = pygame.transform.scale(src_img, (25*i, 25*i))
+            screen.blit(img, img.get_rect(center=(i*50, i*50)))
+            pygame.display.update()
+            pygame.time.wait(750)
+        text = font.render("VERLOREN", True, (0,0,0))
+        screen.blit(text, text.get_rect(center=(250,340)))
+        pygame.display.update()
+        wait_on_user_key()
+        return True
+
+def draw_false_numbers(value, solution, lives, diff, ticks):
+    mistake = False
+    if not check_win(value, solution, lives, diff, ticks):
+        screen.fill((255, 255, 255))
+        draw_grid()
         for row in range(9):
             for number in range(9):
                 if value[row][number] != 0 and solution[row][number] != value[row][number]:
-                    pygame.draw.rect(screen, (255, 0, 0), pygame.Rect((number+1)*50-25, (row+1)*50-25, 50, 50), 3, 0)
+                    mistake = True
+                    pygame.draw.rect(screen, (255, 0, 0), pygame.Rect((number+1)*50-25, (row+1)*50, 50, 50), 3, 0)
+        draw_numbers(value, [-1, 0], lives-1 if mistake else lives, diff, ticks)
         pygame.display.update()
         wait_on_user_key()
-        draw_numbers(value, selected_number)
-        return False
-    else: return True
+        return False, mistake
+    else: return True, mistake
 
 def generate_board():
-    res = requests.get(("https://sudoku-api.vercel.app/api/dosuku?query={newboard(limit:1){grids{value,solution}}}")).json()['newboard']['grids'][0]
-    return res['value'], res['solution']
+    res = requests.get(("https://sudoku-api.vercel.app/api/dosuku?query={newboard(limit:1){grids{value,solution,difficulty}}}")).json()['newboard']['grids'][0]
+    return 3, res['value'], res['solution'], res['difficulty']
 
 def draw_grid():
-    imp = pygame.image.load("sudoku.png")
-    screen.blit(imp, (150, 150))
     cord = 25
     for i in range(10):
         width = 3 if i % 3 == 0 else 1
-        pygame.draw.line(screen, (0, 0, 0), (25, cord), (475, cord), width)
-        pygame.draw.line(screen, (0, 0, 0), (cord, 25), (cord, 475), width)
+        pygame.draw.line(screen, (0, 0, 0), (25, cord+25), (475, cord+25), width)
+        pygame.draw.line(screen, (0, 0, 0), (cord, 50), (cord, 500), width)
         cord+=50
+    img = pygame.image.load("heart.png")
+    img = pygame.transform.scale(img, (25, 25))
+    img.convert()
+    screen.blit(img, img.get_rect(center=(50, 25)))
 
-def draw_numbers(numbers, selected_value):
+def draw_numbers(numbers, selected_value, lives, diff, ticks):
     font = pygame.font.Font(None, 40)
     for row in range(9):
         for number in range(9):
             text = font.render(str(numbers[row][number]) if numbers[row][number] != 0 else "", True, (0, 0, 0))
-            rect = text.get_rect(center=((number+1)*50, (row+1)*50))
+            rect = text.get_rect(center=((number+1)*50, (row+1)*50+25))
             screen.blit(text, rect)
             if [number, row] == selected_value:
-                pygame.draw.rect(screen, (255, 0, 0), pygame.Rect((number+1)*50-24, (row+1)*50-24, 49, 49), 2, 2)
+                pygame.draw.rect(screen, (255, 0, 0), pygame.Rect((number+1)*50-24, (row+1)*50+1, 49, 49), 2, 2)
+    text = font.render(f"{int((pygame.time.get_ticks()-ticks)/1000/60):02}:{int((pygame.time.get_ticks()-ticks)/1000%60):02}", True, (0, 0, 0))
+    screen.blit(text, text.get_rect(midleft=(405, 25)))
+    text = font.render(str(diff), True, (0, 0, 0))
+    screen.blit(text, text.get_rect(center=(245, 25)))
+    text = font.render(str(lives), True, (0, 0, 0))
+    screen.blit(text, text.get_rect(center=(75, 25)))
+                
 def draw_buttons():
-    font = pygame.font.Font(None, 55)
-    text1 = font.render("Reset", True, (255,255,255))
-    text2 = font.render("Check Entries", True, (255,255,255))
-    rect1 = text1.get_rect(center=(125, 525))
-    rect2 = text2.get_rect(center=(325, 525))
+    font = pygame.font.Font(None, 45)
+    text1 = font.render("Zurücksetzen", True, (255,255,255))
+    text2 = font.render("Einträge prüfen", True, (255,255,255))
+    rect1 = text1.get_rect(midleft=(25, 550))
+    rect2 = text2.get_rect(midright=(475, 550))
     pygame.draw.rect(screen, (0, 0, 0), rect1, 0, 5)
     pygame.draw.rect(screen, (0, 0, 0), rect2, 0, 5)
     screen.blit(text1, rect1)
     screen.blit(text2, rect2)
     return rect1, rect2
             
-value, solution = generate_board()
+lives, value, solution, diff = generate_board()
+global ticks
+ticks = pygame.time.get_ticks()
 selected_number = [0, 0]
 
 while run:
     screen.fill((255, 255, 255))
     draw_grid()
-    draw_numbers(value, selected_number)
+    draw_numbers(value, selected_number, lives, diff, ticks)
     reset_button, check_entries_button = draw_buttons()
     for event in pygame.event.get():
-        print(event)
         if event.type == pygame.QUIT:
             run = False
         elif event.type == pygame.MOUSEBUTTONUP:
             if reset_button.collidepoint(event.pos):
-                value, solution = generate_board()
-                selected_number = [0, 0]
+                lives, value, solution, diff = generate_board()
+                ticks = pygame.time.get_ticks()
             elif check_entries_button.collidepoint(event.pos):
-                if draw_false_numbers(value, solution): # if check_win is true
-                    value, solution = generate_board()
-                    selected_number = [0, 0]
-    
-            elif 475 >= event.pos[0] >= 25 and 475 >= event.pos[1] >= 25:
-                selected_number = [int((event.pos[0]-25)/50),int((event.pos[1]-25)/50)]
+                selected_number = [0, 0]
+                check = draw_false_numbers(value, solution, lives, diff, ticks)
+                if check[0]: # if check_win is true
+                    lives, value, solution, diff  = generate_board()
+                elif check[1]:
+                    lives -= 1
+            elif 475 >= event.pos[0] >= 25 and 500 >= event.pos[1] >= 50:
+                selected_number = [int((event.pos[0]-25)/50),int((event.pos[1]-50)/50)]
         elif event.type == pygame.KEYUP and event.key in [pygame.K_UP, pygame.K_DOWN, pygame.K_LEFT, pygame.K_RIGHT]:
             if event.key == pygame.K_UP and selected_number[1] > 0:
                 selected_number[1] -= 1
@@ -118,6 +153,10 @@ while run:
             if (event.type == pygame.KEYDOWN and event.key == pygame.K_BACKSPACE) or event.text == "-":
                 event.text = "0"
             value[selected_number[1]][selected_number[0]] = int(event.text)
+    if check_lose(lives):
+        lives, value, solution, diff = generate_board()
+        ticks = pygame.time.get_ticks()
+        selected_number = [0, 0]
     pygame.display.update() 
 
 pygame.quit()
