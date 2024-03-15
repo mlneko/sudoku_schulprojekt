@@ -71,8 +71,11 @@ def draw_false_numbers(value, solution, lives, diff, ticks):
     else: return True, mistake
 
 def generate_board():
-    res = requests.get(("https://sudoku-api.vercel.app/api/dosuku?query={newboard(limit:1){grids{value,solution,difficulty}}}")).json()['newboard']['grids'][0]
-    return 3, res['value'], res['solution'], res['difficulty']
+    try: 
+        res = requests.get(("https://sudoku-api.vercel.app/api/dosuku?query={newboard(limit:1){grids{value,solution,difficulty}}}")).json()['newboard']['grids'][0]
+        return 3, res['value'], res['solution'], res['difficulty']
+    except requests.exceptions.JSONDecodeError:
+        return generate_board()
 
 def draw_grid():
     cord = 25
