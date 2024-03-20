@@ -6,6 +6,13 @@ import requests
 def wait_on_user_key():
     k = False
     
+    font = pygame.font.Font(None, 30)
+    
+    text = font.render("Drück einen beliebigen Knopf um Fortzufahren", True, (0, 0, 0))
+    screen.blit(text, text.get_rect(center=(245, 550)))
+    
+    pygame.display.update()
+    
     while True:
         
         for event in pygame.event.get():
@@ -22,12 +29,12 @@ def wait_on_user_key():
             break
 
 
-def check_win(value, solution, lives, diff, ticks):
+def check_win(value, solution, lives, diff):
     
     if value == solution:
         screen.fill((255,255,255))
         draw_grid()
-        draw_numbers(value, [-1,0], lives, diff, ticks)
+        draw_numbers(value, [-1,0], lives, diff)
         
         for row in range(9):
           for number in range(9):
@@ -76,10 +83,10 @@ def check_lose(lives):
         return True
 
 
-def draw_false_numbers(value, solution, lives, diff, ticks):
+def draw_false_numbers(value, solution, lives, diff):
     mistake = False
     
-    if not check_win(value, solution, lives, diff, ticks):
+    if not check_win(value, solution, lives, diff):
         
         screen.fill((255, 255, 255))
         draw_grid()
@@ -92,7 +99,7 @@ def draw_false_numbers(value, solution, lives, diff, ticks):
                     mistake = True
                     pygame.draw.rect(screen, (255, 0, 0), pygame.Rect((number+1)*50-25, (row+1)*50, 50, 50), 3, 0)
                     
-        draw_numbers(value, [-1, 0], lives-1 if mistake else lives, diff, ticks)
+        draw_numbers(value, [-1, 0], lives-1 if mistake else lives, diff)
         
         pygame.display.update()
         wait_on_user_key()
@@ -131,7 +138,7 @@ def draw_grid():
     screen.blit(img, img.get_rect(center=(50, 25)))
 
 
-def draw_numbers(numbers, selected_value, lives, diff, ticks):
+def draw_numbers(numbers, selected_value, lives, diff):
     font = pygame.font.Font(None, 40)
     
     for row in range(9):
@@ -176,7 +183,9 @@ def draw_buttons():
 
 lives, value, solution, diff = generate_board()
 
-ticks = pygame.time.get_ticks()
+
+global ticks
+ticks = .0
 
 selected_number = [0, 0]
 
@@ -191,10 +200,13 @@ while run:
     
     screen.fill((255, 255, 255))
     draw_grid()
-    draw_numbers(value, selected_number, lives, diff, ticks)
+    draw_numbers(value, selected_number, lives, diff)
     reset_button, check_entries_button = draw_buttons()
     
+    value = copy.deepcopy(solution)
+    
     for event in pygame.event.get():
+        print(event)
         
         if event.type == pygame.QUIT:
             run = False
@@ -209,10 +221,11 @@ while run:
             elif check_entries_button.collidepoint(event.pos):
                 
                 selected_number = [0, 0]
-                check = draw_false_numbers(value, solution, lives, diff, ticks)
+                check = draw_false_numbers(value, solution, lives, diff)
                 
                 if check[0]: # if check_win is true
                     lives, value, solution, diff  = generate_board()
+                    ticks = pygame.time.get_ticks()
                     
                 elif check[1]:
                     lives -= 1
