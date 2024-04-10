@@ -4,6 +4,9 @@ import requests
 
 
 def wait_on_user_key():
+    
+    ticks_wait = pygame.time.get_ticks()
+    
     k = False
     
     font = pygame.font.Font(None, 30)
@@ -27,6 +30,9 @@ def wait_on_user_key():
         
         if k:
             break
+        
+    global ticks
+    ticks += pygame.time.get_ticks() - ticks_wait
 
 
 def check_win(value, solution, lives, diff):
@@ -202,8 +208,6 @@ while run:
     draw_grid()
     draw_numbers(value, selected_number, lives, diff)
     reset_button, check_entries_button = draw_buttons()
-    
-    value = copy.deepcopy(solution)
     
     for event in pygame.event.get():
         print(event)
